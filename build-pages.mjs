@@ -5,9 +5,9 @@ import { execSync } from 'child_process';
 console.log('Building for Cloudflare Pages...');
 
 try {
-  // Build frontend with Vite
+  // Build frontend with npm script
   console.log('Building frontend...');
-  execSync('npx vite build', { stdio: 'inherit' });
+  execSync('npm run build', { stdio: 'inherit' });
   
   console.log('Build completed successfully for Cloudflare Pages!');
   console.log('Output directory: dist/');
