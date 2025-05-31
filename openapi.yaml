@@ -1,0 +1,620 @@
+openapi: 3.0.3
+info:
+  title: LeetCode Solution Tracker API
+  description: A comprehensive API for tracking LeetCode solutions with AI-powered code analysis and user authentication
+  version: 1.0.0
+  contact:
+    name: LeetCode Tracker Team
+    email: support@leetcode-tracker.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+  - url: https://production-domain.replit.app
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and session management
+  - name: Problems
+    description: LeetCode problem solutions management
+  - name: Statistics
+    description: User progress and analytics
+  - name: AI Chat
+    description: AI-powered code analysis and assistance
+
+paths:
+  # Authentication endpoints
+  /api/auth/user:
+    get:
+      tags: [Authentication]
+      summary: Get current authenticated user
+      description: Returns the current user's profile information
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/login:
+    get:
+      tags: [Authentication]
+      summary: Initiate login process
+      description: Redirects to authentication provider
+      responses:
+        '302':
+          description: Redirect to authentication provider
+
+  /api/logout:
+    get:
+      tags: [Authentication]
+      summary: Logout user
+      description: Terminates user session and redirects
+      responses:
+        '302':
+          description: Redirect after logout
+
+  # Problems endpoints
+  /api/problems:
+    get:
+      tags: [Problems]
+      summary: Get user's problems
+      description: Retrieve paginated list of user's solved problems with optional filtering
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of problems to return
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of problems to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: search
+          in: query
+          description: Search query for problem title or description
+          schema:
+            type: string
+        - name: difficulty
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: string
+            enum: [easy, medium, hard]
+        - name: category
+          in: query
+          description: Filter by problem category
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Problems retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Problems]
+      summary: Create new problem solution
+      description: Add a new LeetCode problem solution
+      security:
+        - sessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProblem'
+      responses:
+        '201':
+          description: Problem created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/problems/{id}:
+    get:
+      tags: [Problems]
+      summary: Get specific problem
+      description: Retrieve detailed information about a specific problem
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Problem ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Problem retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Problems]
+      summary: Update problem solution
+      description: Update an existing problem solution
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Problem ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProblem'
+      responses:
+        '200':
+          description: Problem updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Problems]
+      summary: Delete problem solution
+      description: Remove a problem solution from the user's collection
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Problem ID
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Problem deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/problems/{id}/analyze:
+    get:
+      tags: [Problems]
+      summary: Analyze problem solution
+      description: Get AI-powered analysis of the problem solution including complexity and optimization suggestions
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Problem ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CodeAnalysis'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Statistics endpoints
+  /api/stats:
+    get:
+      tags: [Statistics]
+      summary: Get user statistics
+      description: Retrieve user's problem-solving statistics and progress
+      security:
+        - sessionAuth: []
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # AI Chat endpoints
+  /api/problems/{id}/chat:
+    get:
+      tags: [AI Chat]
+      summary: Get chat history
+      description: Retrieve chat conversation history for a specific problem
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Problem ID
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Chat history retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [AI Chat]
+      summary: Send chat message
+      description: Send a message to the AI assistant for code analysis and help
+      security:
+        - sessionAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Problem ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatMessage'
+      responses:
+        '200':
+          description: Message sent and AI response received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userMessage:
+                    $ref: '#/components/schemas/ChatMessage'
+                  aiResponse:
+                    $ref: '#/components/schemas/ChatMessage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: connect.sid
+      description: Session-based authentication using HTTP cookies
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique user identifier
+          example: "21637066"
+        email:
+          type: string
+          format: email
+          nullable: true
+          description: User's email address
+          example: "user@example.com"
+        firstName:
+          type: string
+          nullable: true
+          description: User's first name
+          example: "John"
+        lastName:
+          type: string
+          nullable: true
+          description: User's last name
+          example: "Doe"
+        profileImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to user's profile picture
+          example: "https://replit.com/public/images/mark.png"
+        createdAt:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last profile update timestamp
+
+    Problem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique problem identifier
+          example: 1
+        userId:
+          type: string
+          description: ID of the user who owns this solution
+        problemNumber:
+          type: integer
+          description: LeetCode problem number
+          example: 1
+        title:
+          type: string
+          description: Problem title
+          example: "Two Sum"
+        description:
+          type: string
+          description: Problem description
+          example: "Given an array of integers nums and an integer target..."
+        solution:
+          type: string
+          description: User's solution code
+          example: "function twoSum(nums, target) { ... }"
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+          description: Problem difficulty level
+          example: "easy"
+        category:
+          type: string
+          description: Problem category or topic
+          example: "Array"
+        notes:
+          type: string
+          nullable: true
+          description: User's personal notes about the solution
+        createdAt:
+          type: string
+          format: date-time
+          description: Solution creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last solution update timestamp
+
+    CreateProblem:
+      type: object
+      required:
+        - problemNumber
+        - title
+        - description
+        - solution
+        - difficulty
+        - category
+      properties:
+        problemNumber:
+          type: integer
+          description: LeetCode problem number
+          example: 1
+        title:
+          type: string
+          description: Problem title
+          example: "Two Sum"
+        description:
+          type: string
+          description: Problem description
+          example: "Given an array of integers nums and an integer target..."
+        solution:
+          type: string
+          description: User's solution code
+          example: "function twoSum(nums, target) { ... }"
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+          description: Problem difficulty level
+          example: "easy"
+        category:
+          type: string
+          description: Problem category or topic
+          example: "Array"
+        notes:
+          type: string
+          description: User's personal notes about the solution
+
+    UpdateProblem:
+      type: object
+      properties:
+        title:
+          type: string
+          description: Problem title
+        description:
+          type: string
+          description: Problem description
+        solution:
+          type: string
+          description: User's solution code
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+          description: Problem difficulty level
+        category:
+          type: string
+          description: Problem category or topic
+        notes:
+          type: string
+          description: User's personal notes about the solution
+
+    UserStats:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of problems solved
+          example: 42
+        easy:
+          type: integer
+          description: Number of easy problems solved
+          example: 15
+        medium:
+          type: integer
+          description: Number of medium problems solved
+          example: 20
+        hard:
+          type: integer
+          description: Number of hard problems solved
+          example: 7
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique message identifier
+          example: 1
+        problemId:
+          type: integer
+          description: Associated problem ID
+          example: 1
+        userId:
+          type: string
+          description: User ID who sent the message
+        message:
+          type: string
+          description: Message content
+          example: "Can you explain this code?"
+        isAi:
+          type: boolean
+          description: Whether this message is from AI
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          description: Message timestamp
+
+    CreateChatMessage:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Message content to send to AI
+          example: "Can you explain this code?"
+
+    CodeAnalysis:
+      type: object
+      properties:
+        timeComplexity:
+          type: string
+          description: Time complexity analysis
+          example: "O(n)"
+        spaceComplexity:
+          type: string
+          description: Space complexity analysis
+          example: "O(n)"
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Optimization suggestions
+          example: ["Consider using a hash map for O(1) lookups", "Early termination possible"]
+        explanation:
+          type: string
+          description: Code explanation
+          example: "This solution uses a hash map approach..."
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Resource not found"
+        code:
+          type: string
+          description: Error code
+          example: "NOT_FOUND"
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters or body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Invalid input parameters"
+            code: "BAD_REQUEST"
+
+    Unauthorized:
+      description: Authentication required or invalid session
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Unauthorized"
+            code: "UNAUTHORIZED"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Problem not found"
+            code: "NOT_FOUND"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Internal server error"
+            code: "INTERNAL_ERROR"
